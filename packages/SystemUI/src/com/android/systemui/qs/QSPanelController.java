@@ -105,7 +105,7 @@ public class QSPanelController extends QSPanelControllerBase<QSPanel> {
             MediaCarouselInteractor mediaCarouselInteractor) {
         super(view, qsHost, qsCustomizerController, usingMediaPlayer, mediaHost,
                 metricsLogger, uiEventLogger, qsLogger, dumpManager, splitShadeStateController,
-                longPRessEffectProvider);
+                longPRessEffectProvider, tunerService);
         mQsCustomizerController = qsCustomizerController;
         mQsTileRevealControllerFactory = qsTileRevealControllerFactory;
         mFalsingManager = falsingManager;
@@ -158,6 +158,22 @@ public class QSPanelController extends QSPanelControllerBase<QSPanel> {
                 Settings.Secure.getUriFor(QS_SHOW_BRIGHTNESS), false, mView.getContentObserver());
         mView.getContentObserver().onChange(true,
                 Settings.Secure.getUriFor(QS_SHOW_BRIGHTNESS));
+        getContext().getContentResolver().registerContentObserver(
+                Settings.Secure.getUriFor(QSPanel.QS_LAYOUT_COLUMNS), false, mView.getContentObserver());
+        mView.getContentObserver().onChange(true,
+                Settings.Secure.getUriFor(QSPanel.QS_LAYOUT_COLUMNS));
+        getContext().getContentResolver().registerContentObserver(
+                Settings.Secure.getUriFor(QSPanel.QS_LAYOUT_COLUMNS_LANDSCAPE), false, mView.getContentObserver());
+        mView.getContentObserver().onChange(true,
+                Settings.Secure.getUriFor(QSPanel.QS_LAYOUT_COLUMNS_LANDSCAPE));
+        getContext().getContentResolver().registerContentObserver(
+                Settings.Secure.getUriFor(QSPanel.QS_LAYOUT_ROWS), false, mView.getContentObserver());
+        mView.getContentObserver().onChange(true,
+                Settings.Secure.getUriFor(QSPanel.QS_LAYOUT_ROWS));
+        getContext().getContentResolver().registerContentObserver(
+                Settings.Secure.getUriFor(QSPanel.QS_LAYOUT_ROWS_LANDSCAPE), false, mView.getContentObserver());
+        mView.getContentObserver().onChange(true,
+                Settings.Secure.getUriFor(QSPanel.QS_LAYOUT_ROWS_LANDSCAPE));
         mView.updateResources();
         mView.setSceneContainerEnabled(mSceneContainerEnabled);
         if (mView.isListening()) {

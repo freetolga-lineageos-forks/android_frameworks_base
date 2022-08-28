@@ -27,6 +27,7 @@ import android.database.ContentObserver;
 import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.util.ArrayMap;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -61,6 +62,23 @@ public class QSPanel extends LinearLayout {
     public static final String QS_SHOW_HEADER = "qs_show_header";
 
     private static final String TAG = "QSPanel";
+
+    public static final String QS_TILE_VERTICAL_LAYOUT =
+            "system:" + Settings.System.QS_TILE_VERTICAL_LAYOUT;
+    public static final String QS_TILE_LABEL_HIDE =
+            "system:" + Settings.System.QS_TILE_LABEL_HIDE;
+    public static final String QS_LAYOUT_COLUMNS =
+            "system:" + Settings.System.QS_LAYOUT_COLUMNS;
+    public static final String QS_LAYOUT_COLUMNS_LANDSCAPE =
+            "system:" + Settings.System.QS_LAYOUT_COLUMNS_LANDSCAPE;
+    public static final String QQS_LAYOUT_ROWS =
+            "system:" + Settings.System.QQS_LAYOUT_ROWS;
+    public static final String QQS_LAYOUT_ROWS_LANDSCAPE =
+            "system:" + Settings.System.QQS_LAYOUT_ROWS_LANDSCAPE;
+    public static final String QS_LAYOUT_ROWS =
+            "system:" + Settings.System.QS_LAYOUT_ROWS;
+    public static final String QS_LAYOUT_ROWS_LANDSCAPE =
+            "system:" + Settings.System.QS_LAYOUT_ROWS_LANDSCAPE;
 
     protected final Context mContext;
     private final int mMediaTopMargin;
@@ -387,6 +405,39 @@ public class QSPanel extends LinearLayout {
     private void updateViewVisibilityForTuningValue(View view, @Nullable String newValue) {
         view.setVisibility(TunerService.parseIntegerSwitch(newValue, true) ? VISIBLE : GONE);
     }
+    @Override
+    public void onTuningChanged(String key, String newValue) {
+        switch (key) {
+            case QS_SHOW_BRIGHTNESS_SLIDER:
+                boolean value =
+                       TunerService.parseInteger(newValue, 1) >= 1;
+                if (mBrightnessView != null) {
+                    mBrightnessView.setVisibility(value ? View.VISIBLE : View.GONE);
+                }
+                break;
+            case QS_BRIGHTNESS_SLIDER_POSITION:
+                mTop = TunerService.parseInteger(newValue, 0) == 0;
+                updateBrightnessSliderPosition();
+                break;
+            case QS_SHOW_AUTO_BRIGHTNESS:
+                if (mAutoBrightnessView != null) {
+                    mAutoBrightnessView.setVisibility(mIsAutomaticBrightnessAvailable &&
+                            TunerService.parseIntegerSwitch(newValue, true) ? View.VISIBLE : View.GONE);
+                }
+                break;
+            case QS_LAYOUT_COLUMNS:
+            case QS_LAYOUT_COLUMNS_LANDSCAPE:
+            case QS_LAYOUT_ROWS:
+            case QS_LAYOUT_ROWS_LANDSCAPE:
+            case QQS_LAYOUT_ROWS:
+            case QQS_LAYOUT_ROWS_LANDSCAPE:
+                needsDynamicRowsAndColumns();
+                break;
+            default:
+                break;
+         }
+>>>>>>> 050b7019c2b7 (SystemUI: Add QS tile layout settings [1/2])
+    }
 
 
     @Nullable
@@ -461,6 +512,7 @@ public class QSPanel extends LinearLayout {
         }
         mOnConfigurationChangedListeners.forEach(
                 listener -> listener.onConfigurationChange(newConfig));
+        needsDynamicRowsAndColumns();
     }
 
     final boolean hadConfigurationChangeWhileDetached() {
@@ -505,8 +557,14 @@ public class QSPanel extends LinearLayout {
         return false;
     }
 
-    private boolean needsDynamicRowsAndColumns() {
-        return !SceneContainerFlag.isEnabled();
+    public void needsDynamicRowsAndColumns() {
+        if (mTileLayout != null) {
+            boolean rowUpdate = mTileLayout.setMinRows(mTileLayout.getResourceRows());
+            boolean colUpdate = mTileLayout.setMaxColumns(mTileLayout.getResourceColumns());
+            if (rowUpdate || colUpdate) {
+                mTileLayout.updateSettings();
+            }
+        }
     }
 
     private void switchAllContentToParent(ViewGroup parent, QSTileLayout newLayout) {
@@ -699,20 +757,15 @@ public class QSPanel extends LinearLayout {
             if (SceneContainerFlag.isEnabled()) return;
             switchAllContentToParent(newParent, mTileLayout);
             reAttachMediaHost(mediaHostView, horizontal);
-            if (needsDynamicRowsAndColumns()) {
-                setColumnRowLayout(horizontal);
+            needsDynamicRowsAndColumns();
+            if (SceneContainerFlag.isEnabled()) {
+                placeTileLayoutForScene(horizontal);
             }
             updateMargins(mediaHostView);
             if (mHorizontalLinearLayout != null) {
                 mHorizontalLinearLayout.setVisibility(horizontal ? View.VISIBLE : View.GONE);
             }
         }
-    }
-
-    void setColumnRowLayout(boolean withMedia) {
-        mTileLayout.setMinRows(withMedia ? 2 : 1);
-        mTileLayout.setMaxColumns(withMedia ? 2 : 4);
-        placeTileLayoutForScene(withMedia);
     }
 
     protected void placeTileLayoutForScene(boolean withMedia) {
@@ -872,6 +925,12 @@ public class QSPanel extends LinearLayout {
         int getNumVisibleTiles();
 
         default void setLogger(QSLogger qsLogger) { }
+
+        int getResourceColumns();
+
+        int getResourceRows();
+
+        void updateSettings();
     }
 
     interface OnConfigurationChangedListener {

@@ -70,7 +70,7 @@ public class QuickQSPanelController extends QSPanelControllerBase<QuickQSPanel> 
     ) {
         super(view, qsHost, qsCustomizerController, usingMediaPlayer, mediaHost, metricsLogger,
                 uiEventLogger, qsLogger, dumpManager, splitShadeStateController,
-                longPressEffectProvider);
+                longPressEffectProvider, tunerService);
         mUsingCollapsedLandscapeMediaProvider = usingCollapsedLandscapeMediaProvider;
         mMediaCarouselInteractor = mediaCarouselInteractor;
     }
@@ -121,12 +121,35 @@ public class QuickQSPanelController extends QSPanelControllerBase<QuickQSPanel> 
         mView.setMaxTiles(parseNumTiles);
         setTiles();
     }
+    private void updateBrightnessMirror() {
+        if (mBrightnessMirrorController != null) {
+            mBrightnessSliderController.setMirrorControllerAndMirror(mBrightnessMirrorController);
+        }
+    }
+
+    @Override
+    void setListening(boolean listening) {
+        super.setListening(listening);
+
+        if (listening != mListening) {
+            mListening = listening;
+            // Set the listening as soon as the QS fragment starts listening regardless of the
+            //expansion, so it will update the current brightness before the slider is visible.
+            if (listening) {
+                mBrightnessController.registerCallbacks();
+            } else {
+                mBrightnessController.unregisterCallbacks();
+            }
+        }
+>>>>>>> 050b7019c2b7 (SystemUI: Add QS tile layout settings [1/2])
+    }
 
     @Override
     protected void onConfigurationChanged() {
-        int newMaxTiles = getResources().getInteger(R.integer.quick_qs_panel_max_tiles);
-        if (newMaxTiles != mView.getNumQuickTiles()) {
-            setMaxTiles(newMaxTiles);
+        mView.updateResources();
+        setTiles();
+        if (mView.isListening()) {
+            refreshAllTiles();
         }
         if (!SceneContainerFlag.isEnabled()) {
             updateMediaExpansion();
@@ -135,10 +158,11 @@ public class QuickQSPanelController extends QSPanelControllerBase<QuickQSPanel> 
 
     @Override
     public void setTiles() {
+        int numQuickTiles = mView.getNumQuickTiles();
         List<QSTile> tiles = new ArrayList<>();
         for (QSTile tile : mHost.getTiles()) {
             tiles.add(tile);
-            if (tiles.size() == mView.getNumQuickTiles()) {
+            if (tiles.size() == numQuickTiles) {
                 break;
             }
         }

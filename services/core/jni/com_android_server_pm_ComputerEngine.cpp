@@ -19,11 +19,7 @@
 namespace android {
 
 static bool isDebuggable(JNIEnv* env) {
-#ifdef ANDROID_DEBUGGABLE
     return true;
-#else
-    return false;
-#endif
 }
 
 static const JNINativeMethod method_table[] = {
